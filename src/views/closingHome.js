@@ -1,4 +1,4 @@
-// Closing Home View (EPIC 1, 2, 3 Dashboard)
+// Closing Home View (EPIC 1, 2, 3 Dashboard with Visual Charts)
 import { store } from '../models/store.js';
 import {
   calculateRecipeUnitCost,
@@ -7,6 +7,7 @@ import {
   calculateOrderRecommendations
 } from '../services/calculations.js';
 import { exportBackupToExcel, importBackupFromExcel } from '../services/excelService.js';
+import { createDualAreaTrendChart, createDonutChart } from '../services/charts.js';
 
 export function renderClosingHomeView(container, { onNavigate }) {
   function update() {
@@ -32,6 +33,8 @@ export function renderClosingHomeView(container, { onNavigate }) {
     let todayFee = 0;
     let todayContrib = 0;
     let todayItemsCount = 0;
+    let dineInSales = 0;
+    let togoSales = 0;
 
     for (const s of todaySales) {
       const qty = s.quantity;
@@ -61,10 +64,64 @@ export function renderClosingHomeView(container, { onNavigate }) {
       todayFee += fee;
       todayContrib += contrib;
       todayItemsCount += qty;
+
+      if (s.channel === '포장') {
+        togoSales += net;
+      } else {
+        dineInSales += net;
+      }
     }
 
     const todayCostRate = todayNetSales > 0 ? ((todayFoodCost + todayPackagingCost) / todayNetSales) * 100 : 0;
     const todayMarginRate = todayNetSales > 0 ? (todayContrib / todayNetSales) * 100 : 0;
+
+    // Calculate 14-day trend ending at latestDate
+    const trendData = [];
+    const refDateObj = new Date(latestDate);
+    for (let i = 13; i >= 0; i--) {
+      const d = new Date(refDateObj);
+      d.setDate(d.getDate() - i);
+      const dateStr = d.toISOString().slice(0, 10);
+      const daySales = sales.filter((s) => s.date === dateStr);
+      let dayNet = 0;
+      let dayContrib = 0;
+
+      for (const s of daySales) {
+        const qty = s.quantity;
+        const disc = s.discount_amount || 0;
+        const net = s.net_sales !== undefined ? s.net_sales : (s.unit_price * qty - disc);
+        const fee = s.payment_fee !== undefined ? s.payment_fee : Math.round(net * 0.015);
+
+        const { foodCost, packagingCost } = calculateRecipeUnitCost(
+          s.recipe_version,
+          s.menu_id,
+          s.channel,
+          s.date,
+          recipes,
+          priceHistory,
+          materials
+        );
+
+        dayNet += net;
+        dayContrib += (net - (foodCost + packagingCost) * qty - fee);
+      }
+
+      trendData.push({
+        date: dateStr.slice(5),
+        fullDate: dateStr,
+        sales: dayNet,
+        margin: dayContrib
+      });
+    }
+
+    // Yesterday comparison for delta calculation
+    const yesterdayData = trendData[trendData.length - 2];
+    const salesDelta = yesterdayData && yesterdayData.sales > 0
+      ? ((todayNetSales - yesterdayData.sales) / yesterdayData.sales) * 100
+      : 0;
+    const marginDelta = yesterdayData && yesterdayData.margin > 0
+      ? ((todayContrib - yesterdayData.margin) / yesterdayData.margin) * 100
+      : 0;
 
     // Calculate inventory ledger and order recommendations (FEAT-17: 100% synchronized)
     const ledger = calculateInventoryLedger({
@@ -87,21 +144,39 @@ export function renderClosingHomeView(container, { onNavigate }) {
 
     container.innerHTML = `
       <div class="view-panel">
-        <!-- Top 4 KPI Cards -->
+        <!-- Top 4 Modern Enterprise KPI Cards -->
         <div class="grid-4">
+          <!-- KPI 1: Today Net Sales -->
           <div class="card">
-            <div class="kpi-label">오늘 순매출 (${latestDate})</div>
-            <div class="kpi-value tabular-nums">${Math.round(todayNetSales).toLocaleString()} <span style="font-size: 13px; font-weight: 500; color: var(--outline);">원</span></div>
+            <div class="kpi-header">
+              <span class="kpi-label">오늘 순매출 (${latestDate})</span>
+              <div class="icon-bubble blue">
+                <span class="material-symbols-outlined" style="font-size: 18px;">payments</span>
+              </div>
+            </div>
+            <div class="kpi-value tabular-nums">
+              ${Math.round(todayNetSales).toLocaleString()}
+              <span style="font-size: 14px; font-weight: 600; color: var(--outline);">원</span>
+            </div>
             <div class="kpi-sub">
-              <span>총 판매 잔수: ${todayItemsCount}잔</span>
-              <span>할인: -${todayDiscount.toLocaleString()}원</span>
+              <span>총 판매 ${todayItemsCount}잔</span>
+              <span class="metric-delta ${salesDelta >= 0 ? 'up-good' : 'down-bad'}">
+                ${salesDelta >= 0 ? '+' : ''}${salesDelta.toFixed(1)}% 전일비
+              </span>
             </div>
           </div>
 
+          <!-- KPI 2: Direct Cost Rate -->
           <div class="card">
-            <div class="kpi-label">오늘 직접원가율</div>
+            <div class="kpi-header">
+              <span class="kpi-label">오늘 직접원가율</span>
+              <div class="icon-bubble ${todayCostRate > 35 ? 'rose' : 'purple'}">
+                <span class="material-symbols-outlined" style="font-size: 18px;">pie_chart</span>
+              </div>
+            </div>
             <div class="kpi-value tabular-nums" style="color: ${todayCostRate > 35 ? 'var(--error)' : 'var(--primary)'};">
-              ${todayCostRate.toFixed(1)} <span style="font-size: 13px; font-weight: 500; color: var(--outline);">%</span>
+              ${todayCostRate.toFixed(1)}
+              <span style="font-size: 14px; font-weight: 600; color: var(--outline);">%</span>
             </div>
             <div class="kpi-sub">
               <span>재료비: ${Math.round(todayFoodCost + todayPackagingCost).toLocaleString()}원</span>
@@ -110,33 +185,84 @@ export function renderClosingHomeView(container, { onNavigate }) {
           </div>
 
           <!-- KPI 3: Live Order Recommendations (FEAT-17) -->
-          <div class="card" id="card-kpi-inv" style="cursor: pointer;">
-            <div class="kpi-label">재고 부족 / 발주 권장</div>
-            <div class="kpi-value tabular-nums" style="color: ${orderData.urgentCount > 0 ? 'var(--error)' : '#166534'};">
-              긴급 ${orderData.urgentCount} <span style="font-size: 13px; font-weight: 500; color: var(--outline);">개 품목</span>
+          <div class="card card-interactive" id="card-kpi-inv">
+            <div class="kpi-header">
+              <span class="kpi-label">재고 부족 / 발주 권장</span>
+              <div class="icon-bubble ${orderData.urgentCount > 0 ? 'rose' : 'green'}">
+                <span class="material-symbols-outlined" style="font-size: 18px;">inventory_2</span>
+              </div>
+            </div>
+            <div class="kpi-value tabular-nums" style="color: ${orderData.urgentCount > 0 ? 'var(--error)' : '#059669'};">
+              긴급 ${orderData.urgentCount}
+              <span style="font-size: 14px; font-weight: 600; color: var(--outline);">개 품목</span>
             </div>
             <div class="kpi-sub">
               <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 140px;">
                 ${orderData.urgentItems.map((i) => i.name).slice(0, 2).join(', ') || '전 품목 안전재고'}
               </span>
-              <a href="#" id="link-goto-order" style="color: var(--primary); font-weight: 600; text-decoration: none;">발주 확인 →</a>
+              <span style="color: var(--primary); font-weight: 700;">발주 확인 →</span>
             </div>
           </div>
 
+          <!-- KPI 4: Net Contribution Margin -->
           <div class="card">
-            <div class="kpi-label">오늘 실질 순수 마진(공헌이익)</div>
-            <div class="kpi-value tabular-nums" style="color: #065f46;">
-              ${Math.round(todayContrib).toLocaleString()} <span style="font-size: 13px; font-weight: 500; color: var(--outline);">원</span>
+            <div class="kpi-header">
+              <span class="kpi-label">오늘 실질 순수 마진(공헌이익)</span>
+              <div class="icon-bubble green">
+                <span class="material-symbols-outlined" style="font-size: 18px;">savings</span>
+              </div>
+            </div>
+            <div class="kpi-value tabular-nums" style="color: #059669;">
+              ${Math.round(todayContrib).toLocaleString()}
+              <span style="font-size: 14px; font-weight: 600; color: var(--outline);">원</span>
             </div>
             <div class="kpi-sub">
               <span>마진율: ${todayMarginRate.toFixed(1)}%</span>
-              <span class="badge badge-success">흑자 운영</span>
+              <span class="metric-delta ${marginDelta >= 0 ? 'up-good' : 'down-bad'}">
+                ${marginDelta >= 0 ? '+' : ''}${marginDelta.toFixed(1)}% 전일비
+              </span>
             </div>
           </div>
         </div>
 
-        <!-- Middle Section: Closing Checklist & Fast Navigation / Excel Backup -->
-        <div style="display: grid; grid-template-columns: 1.8fr 1.2fr; gap: 12px;">
+        <!-- NEW Visual Analytics Strip: 14-Day Dual Trend & Today Channel Donut -->
+        <div style="display: grid; grid-template-columns: 1.85fr 1.15fr; gap: 14px;">
+          <!-- Left: 14-Day Sales & Margin Trend -->
+          <div class="chart-card">
+            <div class="chart-header">
+              <div class="chart-title">
+                <span class="material-symbols-outlined" style="color: var(--primary); font-size: 18px;">show_chart</span>
+                최근 14일 일별 순매출 및 공헌이익 추이
+              </div>
+              <div class="chart-legend">
+                <div class="legend-item">
+                  <span class="legend-dot" style="background: #2563eb;"></span>
+                  <span>순매출(원)</span>
+                </div>
+                <div class="legend-item">
+                  <span class="legend-dot" style="background: #059669;"></span>
+                  <span>공헌이익(마진)</span>
+                </div>
+              </div>
+            </div>
+            <div id="home-trend-chart-container"></div>
+          </div>
+
+          <!-- Right: Today Channel Breakdown Donut -->
+          <div class="chart-card">
+            <div class="chart-header">
+              <div class="chart-title">
+                <span class="material-symbols-outlined" style="color: #4f46e5; font-size: 18px;">donut_small</span>
+                오늘 판매 채널 비중
+              </div>
+              <span class="badge badge-star">오늘 실적</span>
+            </div>
+            <div id="home-channel-donut-container" style="padding: 10px 0;"></div>
+          </div>
+        </div>
+
+        <!-- Bottom Section: Closing Checklist & Fast Navigation / Excel Backup -->
+        <div style="display: grid; grid-template-columns: 1.8fr 1.2fr; gap: 14px;">
           <!-- Left: Closing Flow Checklist -->
           <div class="card">
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--outline-variant);">
@@ -231,6 +357,32 @@ export function renderClosingHomeView(container, { onNavigate }) {
         </div>
       </div>
     `;
+
+    // Render Dual Area Trend Chart (14-day history)
+    const trendContainer = container.querySelector('#home-trend-chart-container');
+    if (trendContainer) {
+      createDualAreaTrendChart({
+        container: trendContainer,
+        data: trendData,
+        width: 680,
+        height: 195
+      });
+    }
+
+    // Render Channel Breakdown Donut Chart
+    const donutContainer = container.querySelector('#home-channel-donut-container');
+    if (donutContainer) {
+      createDonutChart({
+        container: donutContainer,
+        slices: [
+          { label: '매장 주문', value: dineInSales, color: '#2563eb' },
+          { label: '포장 주문', value: togoSales, color: '#059669' }
+        ],
+        centerLabel: '오늘 순매출',
+        centerValue: `${(todayNetSales / 10000).toFixed(1)}만`,
+        size: 150
+      });
+    }
 
     // Bind checklist and KPI navigation
     container.querySelector('#btn-goto-closing-input')?.addEventListener('click', () => onNavigate('closing-input'));

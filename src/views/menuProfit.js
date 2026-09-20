@@ -1,6 +1,7 @@
-// Menu Profitability View (EPIC 1)
+// Menu Profitability View (EPIC 1 with BCG Matrix & Top 5 Visuals)
 import { store } from '../models/store.js';
 import { aggregateMenuProfitability } from '../services/calculations.js';
+import { createScatterMatrixChart, createHorizontalBarChart } from '../services/charts.js';
 
 export function renderMenuProfitView(container) {
   let periodFilter = 'all';
@@ -70,6 +71,26 @@ export function renderMenuProfitView(container) {
       year: `연간 (${maxDate.slice(0, 4)}년)`
     };
 
+    // Scatter and Top 5 data
+    const top5Items = [...data.items]
+      .sort((a, b) => b.totalContribution - a.totalContribution)
+      .slice(0, 5)
+      .map((m) => ({
+        name: m.menuName,
+        contribution: m.totalContribution
+      }));
+
+    const scatterPoints = data.items.map((m) => ({
+      menuId: m.menuId,
+      menuName: m.menuName,
+      category: m.category,
+      quantity: m.quantity,
+      marginRate: m.marginRate,
+      contribution: m.totalContribution,
+      badge: m.badge,
+      isNegative: m.isNegativeMargin
+    }));
+
     container.innerHTML = `
       <div class="view-panel">
         <!-- Toolbar Strip -->
@@ -115,43 +136,92 @@ export function renderMenuProfitView(container) {
           </div>
         </div>
 
-        <!-- 4 KPI Summary Cards -->
+        <!-- 4 Modern Enterprise KPI Cards -->
         <div class="grid-4">
           <div class="card">
-            <div class="kpi-label">조회 메뉴 수</div>
-            <div class="kpi-value tabular-nums">${data.menuCount} <span style="font-size: 13px; font-weight: 500; color: var(--outline);">개</span></div>
+            <div class="kpi-header">
+              <span class="kpi-label">조회 메뉴 수</span>
+              <div class="icon-bubble blue">
+                <span class="material-symbols-outlined" style="font-size: 18px;">restaurant_menu</span>
+              </div>
+            </div>
+            <div class="kpi-value tabular-nums">${data.menuCount} <span style="font-size: 14px; font-weight: 600; color: var(--outline);">개</span></div>
             <div class="kpi-sub">
               <span>기간: ${periodLabels[periodFilter]}</span>
             </div>
           </div>
 
           <div class="card">
-            <div class="kpi-label">평균 실질 마진율</div>
-            <div class="kpi-value tabular-nums" style="color: var(--primary);">${data.avgMarginRate.toFixed(1)} <span style="font-size: 13px; font-weight: 500; color: var(--outline);">%</span></div>
+            <div class="kpi-header">
+              <span class="kpi-label">평균 실질 마진율</span>
+              <div class="icon-bubble green">
+                <span class="material-symbols-outlined" style="font-size: 18px;">percent</span>
+              </div>
+            </div>
+            <div class="kpi-value tabular-nums" style="color: var(--primary);">
+              ${data.avgMarginRate.toFixed(1)} <span style="font-size: 14px; font-weight: 600; color: var(--outline);">%</span>
+            </div>
             <div class="kpi-sub">
               <span>총 공헌이익: ${Math.round(data.totalContrib).toLocaleString()}원</span>
             </div>
           </div>
 
           <div class="card">
-            <div class="kpi-label">주력 메뉴 (총 공헌이익 1위)</div>
-            <div class="kpi-value truncate" style="color: #065f46; font-size: 18px;" title="${data.bestMenu?.menuName || '-'}">
+            <div class="kpi-header">
+              <span class="kpi-label">주력 효자 메뉴</span>
+              <div class="icon-bubble amber">
+                <span class="material-symbols-outlined" style="font-size: 18px;">star</span>
+              </div>
+            </div>
+            <div class="kpi-value truncate" style="color: #059669; font-size: 20px;" title="${data.bestMenu?.menuName || '-'}">
               ${data.bestMenu?.menuName || '-'}
             </div>
             <div class="kpi-sub">
               <span>기여이익: ${Math.round(data.bestMenu?.totalContribution || 0).toLocaleString()}원</span>
-              <span class="badge badge-star">⭐ 효자</span>
+              <span class="badge badge-star">1위</span>
             </div>
           </div>
 
           <div class="card">
-            <div class="kpi-label">원가/역마진 주의 품목</div>
+            <div class="kpi-header">
+              <span class="kpi-label">원가/역마진 주의 품목</span>
+              <div class="icon-bubble ${data.warningCount > 0 ? 'rose' : 'green'}">
+                <span class="material-symbols-outlined" style="font-size: 18px;">warning</span>
+              </div>
+            </div>
             <div class="kpi-value tabular-nums" style="color: ${data.warningCount > 0 ? 'var(--error)' : 'var(--success)'};">
-              ${data.warningCount} <span style="font-size: 13px; font-weight: 500; color: var(--outline);">개</span>
+              ${data.warningCount} <span style="font-size: 14px; font-weight: 600; color: var(--outline);">개</span>
             </div>
             <div class="kpi-sub">
               <span>${data.warningCount > 0 ? '마진 50% 미만/역마진' : '모든 메뉴 마진 양호'}</span>
             </div>
+          </div>
+        </div>
+
+        <!-- NEW: BCG Portfolio 4-Quadrant Scatter & Top 5 Margin Contribution Bars -->
+        <div style="display: grid; grid-template-columns: 1.8fr 1.2fr; gap: 14px;">
+          <!-- Left: 4-Quadrant BCG Matrix Scatter -->
+          <div class="chart-card">
+            <div class="chart-header">
+              <div class="chart-title">
+                <span class="material-symbols-outlined" style="color: var(--primary); font-size: 18px;">grid_view</span>
+                메뉴 포트폴리오 BCG 4분면 진단 (판매량 vs 실질마진율)
+              </div>
+              <span style="font-size: 11px; color: var(--outline);">원 크기: 총 공헌이익 기여액</span>
+            </div>
+            <div id="menu-scatter-chart-container"></div>
+          </div>
+
+          <!-- Right: Top 5 Contribution Margin Bars -->
+          <div class="chart-card">
+            <div class="chart-header">
+              <div class="chart-title">
+                <span class="material-symbols-outlined" style="color: #2563eb; font-size: 18px;">leaderboard</span>
+                공헌이익 Top 5 기여 메뉴
+              </div>
+              <span class="badge badge-profit">전체 마진 점유율</span>
+            </div>
+            <div id="menu-top5-bar-container" style="padding: 6px 0;"></div>
           </div>
         </div>
 
@@ -182,10 +252,8 @@ export function renderMenuProfitView(container) {
                   : m.badge === 'review' ? 'badge-review'
                   : '';
                 
-                const isWarning = m.isNegativeMargin || (m.quantity > 0 && m.marginRate < 50);
-
                 return `
-                  <tr class="${m.isNegativeMargin ? 'warning-row' : ''}">
+                  <tr id="menu-row-${m.menuId}" class="${m.isNegativeMargin ? 'warning-row' : ''}" style="transition: background-color 0.4s;">
                     <td class="tabular-nums" style="color: var(--outline);">${m.menuId}</td>
                     <td style="font-weight: 600; color: var(--on-surface);">
                       ${m.menuName}
@@ -199,17 +267,15 @@ export function renderMenuProfitView(container) {
                     <td class="text-right tabular-nums" style="font-weight: 700; color: ${m.unitNetMargin < 0 ? 'var(--error)' : 'var(--primary)'};">
                       ${m.unitNetMargin.toFixed(1)}원
                     </td>
-                    <td class="text-right tabular-nums" style="font-weight: 700; color: ${m.marginRate < 50 ? 'var(--error)' : 'var(--primary)'};">
+                    <td class="text-right tabular-nums" style="font-weight: 600; color: ${m.marginRate < 50 ? 'var(--error)' : 'var(--on-surface)'};">
                       ${m.marginRate.toFixed(1)}%
                     </td>
-                    <td class="text-right tabular-nums" style="font-weight: 600;">
-                      ${m.quantity.toLocaleString()}개
-                    </td>
-                    <td class="text-right tabular-nums" style="font-weight: 700; color: ${m.totalContribution < 0 ? 'var(--error)' : '#065f46'}; font-size: 14px;">
+                    <td class="text-right tabular-nums" style="font-weight: 600;">${m.quantity}잔</td>
+                    <td class="text-right tabular-nums" style="font-weight: 700; color: ${m.totalContribution < 0 ? 'var(--error)' : '#059669'};">
                       ${Math.round(m.totalContribution).toLocaleString()}원
                     </td>
                     <td class="text-center">
-                      ${badgeClass ? `<span class="badge ${badgeClass}">${m.badgeName}</span>` : '<span style="color: var(--outline); font-size: 11px;">-</span>'}
+                      <span class="badge ${badgeClass}">${m.badgeLabel}</span>
                     </td>
                   </tr>
                 `;
@@ -219,6 +285,35 @@ export function renderMenuProfitView(container) {
         </div>
       </div>
     `;
+
+    // Render BCG Scatter Chart
+    const scatterContainer = container.querySelector('#menu-scatter-chart-container');
+    if (scatterContainer) {
+      createScatterMatrixChart({
+        container: scatterContainer,
+        points: scatterPoints,
+        onPointClick: (menuId) => {
+          const targetRow = container.querySelector(`#menu-row-${menuId}`);
+          if (targetRow) {
+            targetRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            targetRow.style.backgroundColor = '#dbeafe';
+            setTimeout(() => {
+              targetRow.style.backgroundColor = '';
+            }, 1800);
+          }
+        }
+      });
+    }
+
+    // Render Top 5 Horizontal Bar Chart
+    const barContainer = container.querySelector('#menu-top5-bar-container');
+    if (barContainer) {
+      createHorizontalBarChart({
+        container: barContainer,
+        items: top5Items,
+        totalContrib: data.totalContrib
+      });
+    }
 
     // Attach Event Listeners
     container.querySelectorAll('#period-filter-group button').forEach((btn) => {

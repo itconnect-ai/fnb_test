@@ -1,10 +1,11 @@
-// Inventory & Order Management View (EPIC 3)
+// Inventory & Order Management View (EPIC 3 with Visual Bullet Gauges)
 import { store } from '../models/store.js';
 import {
   calculateInventoryLedger,
   calculateOrderRecommendations,
   generateOrderClipboardText
 } from '../services/calculations.js';
+import { createStockBulletGauges } from '../services/charts.js';
 import * as XLSX from 'xlsx';
 
 export function renderInventoryOrderView(container) {
@@ -43,6 +44,16 @@ export function renderInventoryOrderView(container) {
     const displayItems = onlyUrgent ? orderData.urgentItems : orderData.items;
     const clipboardPreview = generateOrderClipboardText(orderData.urgentItems, targetDate);
 
+    // Prepare 11 materials bullet gauge data
+    const bulletItems = orderData.items.map((item) => ({
+      name: item.name,
+      unit: item.unit,
+      currentStock: item.currentStock,
+      safetyStock: item.safetyStock,
+      rop: item.rop,
+      status: item.currentStock <= item.safetyStock ? 'danger' : item.currentStock <= item.rop ? 'warning' : 'safe'
+    }));
+
     container.innerHTML = `
       <div class="view-panel">
         <!-- Top Stats Strip -->
@@ -72,6 +83,18 @@ export function renderInventoryOrderView(container) {
               <input type="date" id="inv-target-date" class="form-input" style="padding: 2px 6px; font-size: 11px; height: 28px;" value="${targetDate}" />
             </div>
           </div>
+        </div>
+
+        <!-- NEW: Visual Stock Level Bullet Gauges Panel (11 Materials Buffer Status) -->
+        <div class="card" style="padding: 14px 18px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px solid var(--outline-variant); padding-bottom: 8px;">
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span class="material-symbols-outlined" style="color: var(--primary); font-size: 20px;">stacked_bar_chart</span>
+              <span style="font-size: 14px; font-weight: 700; color: var(--on-surface);">11개 원부자재 안전재고 버퍼 상태 게이지</span>
+            </div>
+            <span style="font-size: 11px; color: var(--outline);">빨간 세로선: 안전재고선 | 주황 세로선: 발주점(ROP)선</span>
+          </div>
+          <div id="inv-bullet-gauges-container"></div>
         </div>
 
         <!-- Notification Alert Box -->
@@ -388,6 +411,15 @@ export function renderInventoryOrderView(container) {
         render();
       });
     });
+
+    // Render Bullet Gauges for 11 materials
+    const gaugeContainer = container.querySelector('#inv-bullet-gauges-container');
+    if (gaugeContainer) {
+      createStockBulletGauges({
+        container: gaugeContainer,
+        items: bulletItems
+      });
+    }
   }
 
   render();

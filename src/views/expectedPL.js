@@ -1,6 +1,7 @@
-// Expected P&L Statement and Monthly Projection View (EPIC 2)
+// Expected P&L Statement and Monthly Projection View (EPIC 2 with Charts)
 import { store } from '../models/store.js';
 import { calculatePLStatement, calculateMonthlyProjection } from '../services/calculations.js';
+import { createDonutChart, createForecastBandChart } from '../services/charts.js';
 
 export function renderExpectedPLView(container) {
   // Default range: 2026-09-01 ~ 2026-09-18 (Current month MTD up to reference date)
@@ -17,7 +18,6 @@ export function renderExpectedPLView(container) {
       startDate = referenceDate;
       endDate = referenceDate;
     } else if (period === 'week') {
-      // 7 days ending at referenceDate
       const d = new Date(ref);
       d.setDate(d.getDate() - 6);
       startDate = d.toISOString().slice(0, 10);
@@ -26,15 +26,12 @@ export function renderExpectedPLView(container) {
       startDate = `${referenceDate.slice(0, 7)}-01`;
       endDate = referenceDate;
     } else if (period === 'quarter') {
-      // 3 months (e.g. 2026-07-01 ~ 2026-09-18)
       startDate = '2026-07-01';
       endDate = referenceDate;
     } else if (period === 'half') {
-      // 6 months (2026-04-01 ~ 2026-09-18)
       startDate = '2026-04-01';
       endDate = referenceDate;
     } else if (period === 'year') {
-      // 1 year (2025-10-01 ~ 2026-09-18)
       startDate = '2025-10-01';
       endDate = referenceDate;
     }
@@ -71,6 +68,47 @@ export function renderExpectedPLView(container) {
       priceHistory,
       materials
     });
+
+    // Prepare Cost Slices for Donut
+    const costSlices = [
+      { label: '원두·원재료', value: pl.rawMaterialCost, color: '#c2410c' },
+      { label: '우유·유제품', value: pl.dairyCost, color: '#ea580c' },
+      { label: '포장용기비', value: pl.packagingCost, color: '#f97316' },
+      { label: '결제수수료', value: pl.paymentFee, color: '#3b82f6' },
+      ...Object.entries(pl.expenseBreakdown).map(([k, v], idx) => {
+        const colors = ['#6366f1', '#8b5cf6', '#ec4899', '#14b8a6', '#64748b'];
+        return { label: k, value: v, color: colors[idx % colors.length] };
+      })
+    ].filter((s) => s.value > 0);
+
+    // Prepare 1~30 Cumulative Actual & Projected Sales
+    const septSales = sales.filter((s) => s.date.startsWith('2026-09') && s.date <= '2026-09-18');
+    const dailyTotals = {};
+    for (let d = 1; d <= 18; d++) {
+      const ds = `2026-09-${String(d).padStart(2, '0')}`;
+      dailyTotals[ds] = 0;
+    }
+    for (const s of septSales) {
+      const net = s.net_sales !== undefined ? s.net_sales : (s.unit_price * s.quantity - (s.discount_amount || 0));
+      if (dailyTotals[s.date] !== undefined) {
+        dailyTotals[s.date] += net;
+      }
+    }
+    const actualCumSales = [];
+    let runSum = 0;
+    for (let d = 1; d <= 18; d++) {
+      const ds = `2026-09-${String(d).padStart(2, '0')}`;
+      runSum += dailyTotals[ds] || 0;
+      actualCumSales.push(runSum);
+    }
+
+    const projectedCumSales = [];
+    let projSum = runSum;
+    const avgDaySales = projection.projectedRemainingSales / 12;
+    for (let d = 19; d <= 30; d++) {
+      projSum += avgDaySales;
+      projectedCumSales.push(projSum);
+    }
 
     const isProfit = pl.operatingProfit >= 0;
     const bepPct = pl.bepAttainment || 0;
@@ -272,7 +310,7 @@ export function renderExpectedPLView(container) {
               </div>
 
               <!-- Projection Calculation Details -->
-              <div style="background-color: #ffffff; border-radius: var(--radius-md); padding: 12px; border: 1px solid #e2e8f0; font-size: 12px;">
+              <div style="background-color: #ffffff; border-radius: var(--radius-md); padding: 12px; border: 1px solid #e2e8f0; font-size: 12px; margin-bottom: 12px;">
                 <div style="font-weight: 700; color: var(--on-surface); margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between;">
                   <span>예측 산출 근거 (기준일: ${projection.referenceDate})</span>
                   <span style="font-weight: 500; font-size: 11px; color: var(--outline);">경과 ${projection.elapsedDays}일 / 잔여 ${projection.remainingDays}일</span>
@@ -299,9 +337,30 @@ export function renderExpectedPLView(container) {
                   </div>
                 </div>
               </div>
+
+              <!-- Visual Forecast Trajectory Chart -->
+              <div style="background: #ffffff; border-radius: var(--radius-md); padding: 10px 12px; border: 1px solid #e2e8f0;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                  <span style="font-size: 12px; font-weight: 700; color: var(--on-surface);">9월 누적 매출 궤적 및 월말 예측선</span>
+                  <span style="font-size: 10px; color: var(--outline);">실적(실선) vs 예측(점선)</span>
+                </div>
+                <div id="pl-forecast-chart-container"></div>
+              </div>
             </div>
 
-            <!-- 2. BEP Break-even Point Analysis Card -->
+            <!-- 2. Cost Composition Donut Chart Card -->
+            <div class="card" style="padding: 16px;">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; border-bottom: 1px solid var(--outline-variant); padding-bottom: 8px;">
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span class="material-symbols-outlined" style="color: #ea580c; font-size: 20px;">pie_chart</span>
+                  <span style="font-size: 14px; font-weight: 700; color: var(--on-surface);">선택 기간 비용 구성비 (원가 + 판관비)</span>
+                </div>
+                <span class="badge badge-star">${activePeriod.toUpperCase()}</span>
+              </div>
+              <div id="pl-cost-donut-container"></div>
+            </div>
+
+            <!-- 3. BEP Break-even Point Analysis Card -->
             <div class="card" style="padding: 16px;">
               <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
                 <div style="display: flex; align-items: center; gap: 6px;">
@@ -347,6 +406,34 @@ export function renderExpectedPLView(container) {
         </div>
       </div>
     `;
+
+    // Render Forecast Trajectory Band Chart
+    const forecastContainer = container.querySelector('#pl-forecast-chart-container');
+    if (forecastContainer) {
+      createForecastBandChart({
+        container: forecastContainer,
+        currentDay: 18,
+        totalDays: 30,
+        actualCumSales,
+        projectedCumSales,
+        bepAmount: pl.bepRevenue || 4385714,
+        width: 500,
+        height: 160
+      });
+    }
+
+    // Render Cost Composition Donut Chart
+    const donutContainer = container.querySelector('#pl-cost-donut-container');
+    if (donutContainer) {
+      const totalCost = costSlices.reduce((sum, s) => sum + s.value, 0);
+      createDonutChart({
+        container: donutContainer,
+        slices: costSlices,
+        centerLabel: '총 비용 합계',
+        centerValue: `${(totalCost / 10000).toFixed(1)}만`,
+        size: 150
+      });
+    }
 
     // Attach Event Listeners
     // Period Tab Click
