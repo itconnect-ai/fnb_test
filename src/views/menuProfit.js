@@ -198,34 +198,7 @@ export function renderMenuProfitView(container) {
           </div>
         </div>
 
-        <!-- NEW: BCG Portfolio 4-Quadrant Scatter & Top 5 Margin Contribution Bars -->
-        <div style="display: grid; grid-template-columns: 1.8fr 1.2fr; gap: 14px;">
-          <!-- Left: 4-Quadrant BCG Matrix Scatter -->
-          <div class="chart-card">
-            <div class="chart-header">
-              <div class="chart-title">
-                <span class="material-symbols-outlined" style="color: var(--primary); font-size: 18px;">grid_view</span>
-                메뉴 포트폴리오 BCG 4분면 진단 (판매량 vs 실질마진율)
-              </div>
-              <span style="font-size: 11px; color: var(--outline);">원 크기: 총 공헌이익 기여액</span>
-            </div>
-            <div id="menu-scatter-chart-container"></div>
-          </div>
-
-          <!-- Right: Top 5 Contribution Margin Bars -->
-          <div class="chart-card">
-            <div class="chart-header">
-              <div class="chart-title">
-                <span class="material-symbols-outlined" style="color: #2563eb; font-size: 18px;">leaderboard</span>
-                공헌이익 Top 5 기여 메뉴
-              </div>
-              <span class="badge badge-profit">전체 마진 점유율</span>
-            </div>
-            <div id="menu-top5-bar-container" style="padding: 6px 0;"></div>
-          </div>
-        </div>
-
-        <!-- High Density Profitability Table -->
+        <!-- 1. Primary: High Density Profitability Table (Prioritized Above Charts) -->
         <div class="table-container">
           <table class="data-table">
             <thead>
@@ -275,13 +248,40 @@ export function renderMenuProfitView(container) {
                       ${Math.round(m.totalContribution).toLocaleString()}원
                     </td>
                     <td class="text-center">
-                      <span class="badge ${badgeClass}">${m.badgeLabel}</span>
+                      <span class="badge ${badgeClass}">${m.badgeName || '일반'}</span>
                     </td>
                   </tr>
                 `;
               }).join('')}
             </tbody>
           </table>
+        </div>
+
+        <!-- 2. Secondary Insight: Compact BCG 4-Quadrant Scatter & Top 5 Margin Contribution Bars -->
+        <div style="display: grid; grid-template-columns: 1.6fr 1.1fr; gap: 14px;">
+          <!-- Left: 4-Quadrant BCG Matrix Scatter -->
+          <div class="chart-card">
+            <div class="chart-header">
+              <div class="chart-title">
+                <span class="material-symbols-outlined" style="color: var(--primary); font-size: 18px;">grid_view</span>
+                메뉴 포트폴리오 BCG 4분면 진단 (판매량 vs 실질마진율)
+              </div>
+              <span style="font-size: 11px; color: var(--outline);">버블 클릭 시 위 테이블로 포커스</span>
+            </div>
+            <div id="menu-scatter-chart-container"></div>
+          </div>
+
+          <!-- Right: Top 5 Contribution Margin Bars -->
+          <div class="chart-card">
+            <div class="chart-header">
+              <div class="chart-title">
+                <span class="material-symbols-outlined" style="color: #2563eb; font-size: 18px;">leaderboard</span>
+                공헌이익 Top 5 기여 메뉴
+              </div>
+              <span class="badge badge-profit">전체 마진 점유율</span>
+            </div>
+            <div id="menu-top5-bar-container" style="padding: 4px 0;"></div>
+          </div>
         </div>
       </div>
     `;

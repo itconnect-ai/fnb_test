@@ -235,29 +235,29 @@ export function createDonutChart({
 }
 
 /**
- * 3. BCG 4-Quadrant Menu Portfolio Scatter Bubble Chart
+ * 3. BCG 4-Quadrant Menu Portfolio Scatter Bubble Chart (Compact & Polished)
  */
 export function createScatterMatrixChart({
   container,
-  points = [], // [{ menuId, menuName, quantity, marginRate, contribution, badge, isNegative }]
+  points = [], // [{ menuId, menuName, category, quantity, marginRate, contribution, badge, isNegative }]
   onPointClick
 }) {
   if (!container || points.length === 0) return;
 
-  const width = 640;
-  const height = 280;
-  const padLeft = 45;
-  const padRight = 30;
-  const padTop = 30;
-  const padBottom = 35;
+  const width = 600;
+  const height = 210; // Compact height
+  const padLeft = 46;
+  const padRight = 20;
+  const padTop = 32;
+  const padBottom = 28;
   const chartW = width - padLeft - padRight;
   const chartH = height - padTop - padBottom;
 
   const maxQty = Math.max(...points.map((p) => p.quantity), 20);
-  const xMax = Math.ceil(maxQty * 1.1);
-  const yMax = 100; // Margin rate %
+  const xMax = Math.ceil(maxQty * 1.08);
+  const yMax = 115; // Increased headroom so top bubbles never overlap quadrant labels
 
-  const xThreshold = xMax * 0.45;
+  const xThreshold = xMax * 0.42;
   const yThreshold = 65; // Margin rate threshold 65%
 
   const getX = (qty) => padLeft + (qty / xMax) * chartW;
@@ -266,38 +266,39 @@ export function createScatterMatrixChart({
   const xSplit = getX(xThreshold);
   const ySplit = getY(yThreshold);
 
-  // Quadrant Background labels
+  // Safe Quadrant Backgrounds & Non-overlapping Labels
   const quadrantLabelsHtml = `
     <!-- Top-Right: Stars (효자) -->
-    <rect x="${xSplit}" y="${padTop}" width="${width - padRight - xSplit}" height="${ySplit - padTop}" fill="#ecfdf5" opacity="0.35" />
-    <text x="${width - padRight - 10}" y="${padTop + 18}" fill="#059669" font-size="11" font-weight="700" text-anchor="end">⭐ 효자 (Stars)</text>
+    <rect x="${xSplit}" y="${padTop}" width="${width - padRight - xSplit}" height="${ySplit - padTop}" fill="#ecfdf5" opacity="0.4" />
+    <text x="${width - padRight - 8}" y="${padTop + 13}" fill="#059669" font-size="10" font-weight="700" text-anchor="end">⭐ 효자(Stars)</text>
 
     <!-- Top-Left: Puzzles (마진형) -->
-    <rect x="${padLeft}" y="${padTop}" width="${xSplit - padLeft}" height="${ySplit - padTop}" fill="#eff6ff" opacity="0.35" />
-    <text x="${padLeft + 10}" y="${padTop + 18}" fill="#2563eb" font-size="11" font-weight="700">🧩 마진형 (Puzzles)</text>
+    <rect x="${padLeft}" y="${padTop}" width="${xSplit - padLeft}" height="${ySplit - padTop}" fill="#eff6ff" opacity="0.4" />
+    <text x="${padLeft + 8}" y="${padTop + 13}" fill="#2563eb" font-size="10" font-weight="700">🧩 마진형(Puzzles)</text>
 
     <!-- Bottom-Left: Dogs (재검토) -->
-    <rect x="${padLeft}" y="${ySplit}" width="${xSplit - padLeft}" height="${padTop + chartH - ySplit}" fill="#fff1f2" opacity="0.35" />
-    <text x="${padLeft + 10}" y="${padTop + chartH - 10}" fill="#e11d48" font-size="11" font-weight="700">⚠️ 재검토 (Dogs)</text>
+    <rect x="${padLeft}" y="${ySplit}" width="${xSplit - padLeft}" height="${padTop + chartH - ySplit}" fill="#fff1f2" opacity="0.4" />
+    <text x="${padLeft + 8}" y="${padTop + chartH - 8}" fill="#e11d48" font-size="10" font-weight="700">⚠️ 재검토(Dogs)</text>
 
     <!-- Bottom-Right: Plowhorses (볼륨형) -->
-    <rect x="${xSplit}" y="${ySplit}" width="${width - padRight - xSplit}" height="${padTop + chartH - ySplit}" fill="#fffbeb" opacity="0.35" />
-    <text x="${width - padRight - 10}" y="${padTop + chartH - 10}" fill="#d97706" font-size="11" font-weight="700" text-anchor="end">🐎 볼륨형 (Plowhorses)</text>
+    <rect x="${xSplit}" y="${ySplit}" width="${width - padRight - xSplit}" height="${padTop + chartH - ySplit}" fill="#fffbeb" opacity="0.4" />
+    <text x="${width - padRight - 8}" y="${padTop + chartH - 8}" fill="#d97706" font-size="10" font-weight="700" text-anchor="end">🐎 볼륨형(Plowhorses)</text>
 
-    <!-- Threshold Grid Lines -->
-    <line x1="${xSplit}" y1="${padTop}" x2="${xSplit}" y2="${padTop + chartH}" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="4 4" />
-    <line x1="${padLeft}" y1="${ySplit}" x2="${width - padRight}" y2="${ySplit}" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="4 4" />
+    <!-- Threshold Guide Lines -->
+    <line x1="${xSplit}" y1="${padTop}" x2="${xSplit}" y2="${padTop + chartH}" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="3 3" />
+    <line x1="${padLeft}" y1="${ySplit}" x2="${width - padRight}" y2="${ySplit}" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="3 3" />
   `;
 
-  // Bubbles
+  // Sort by contribution so bigger bubbles don't completely hide smaller ones
+  const sortedPoints = [...points].sort((a, b) => (b.contribution || 0) - (a.contribution || 0));
   const maxContrib = Math.max(...points.map((p) => p.contribution), 10000);
   let bubblesHtml = '';
 
-  points.forEach((p) => {
+  sortedPoints.forEach((p, idx) => {
     const cx = getX(p.quantity);
     const cy = getY(p.marginRate);
     const radiusRatio = Math.max(0.1, (p.contribution || 0) / maxContrib);
-    const r = 5 + radiusRatio * 16; // 5px ~ 21px
+    const r = 4 + radiusRatio * 9; // 4px ~ 13px compact & balanced
 
     let color = '#2563eb';
     if (p.marginRate >= yThreshold && p.quantity >= xThreshold) color = '#059669'; // Stars
@@ -305,12 +306,18 @@ export function createScatterMatrixChart({
     else if (p.quantity >= xThreshold) color = '#d97706'; // Volume
     else color = '#e11d48'; // Dogs
 
+    // Show label below bubble for top 3 key menus to prevent upper quadrant overlap
+    const isTop3 = idx < 3 && p.quantity > 0;
+    const nameLabel = isTop3 ? `
+      <text x="${cx}" y="${cy + r + 10}" fill="#334155" font-size="9" font-weight="700" text-anchor="middle" pointer-events="none">
+        ${p.menuName}
+      </text>
+    ` : '';
+
     bubblesHtml += `
       <g class="scatter-bubble-group" data-id="${p.menuId}" style="cursor: pointer;">
-        <circle cx="${cx}" cy="${cy}" r="${r}" fill="${color}" fill-opacity="0.75" stroke="#ffffff" stroke-width="1.5" class="bubble-circle" style="transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);" />
-        <text x="${cx}" y="${cy + 3}" fill="#ffffff" font-size="9" font-weight="700" text-anchor="middle" pointer-events="none" style="user-select: none;">
-          ${p.menuName.slice(0, 3)}
-        </text>
+        <circle cx="${cx}" cy="${cy}" r="${r}" fill="${color}" fill-opacity="0.85" stroke="#ffffff" stroke-width="1.5" class="bubble-circle" style="transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);" />
+        ${nameLabel}
       </g>
     `;
   });
@@ -321,21 +328,21 @@ export function createScatterMatrixChart({
         ${quadrantLabelsHtml}
 
         <!-- Axes -->
-        <line x1="${padLeft}" y1="${padTop + chartH}" x2="${width - padRight}" y2="${padTop + chartH}" stroke="#94a3b8" stroke-width="1.5" />
-        <line x1="${padLeft}" y1="${padTop}" x2="${padLeft}" y2="${padTop + chartH}" stroke="#94a3b8" stroke-width="1.5" />
+        <line x1="${padLeft}" y1="${padTop + chartH}" x2="${width - padRight}" y2="${padTop + chartH}" stroke="#94a3b8" stroke-width="1.2" />
+        <line x1="${padLeft}" y1="${padTop}" x2="${padLeft}" y2="${padTop + chartH}" stroke="#94a3b8" stroke-width="1.2" />
 
         <!-- Axis Labels -->
-        <text x="${width - padRight}" y="${padTop + chartH + 26}" fill="#64748b" font-size="11" font-weight="700" text-anchor="end">
+        <text x="${width - padRight}" y="${padTop + chartH + 20}" fill="#64748b" font-size="10" font-weight="700" text-anchor="end">
           판매량 (수량) →
         </text>
-        <text x="${padLeft}" y="${padTop - 12}" fill="#64748b" font-size="11" font-weight="700">
+        <text x="${padLeft}" y="${padTop - 8}" fill="#64748b" font-size="10" font-weight="700">
           ↑ 마진율 (%)
         </text>
 
         <!-- Y Axis Ticks -->
-        <text x="${padLeft - 6}" y="${getY(100) + 4}" fill="#94a3b8" font-size="9" font-weight="600" text-anchor="end">100%</text>
-        <text x="${padLeft - 6}" y="${getY(50) + 4}" fill="#94a3b8" font-size="9" font-weight="600" text-anchor="end">50%</text>
-        <text x="${padLeft - 6}" y="${getY(0) + 4}" fill="#94a3b8" font-size="9" font-weight="600" text-anchor="end">0%</text>
+        <text x="${padLeft - 6}" y="${getY(100) + 3}" fill="#94a3b8" font-size="9" font-weight="600" text-anchor="end">100%</text>
+        <text x="${padLeft - 6}" y="${getY(50) + 3}" fill="#94a3b8" font-size="9" font-weight="600" text-anchor="end">50%</text>
+        <text x="${padLeft - 6}" y="${getY(0) + 3}" fill="#94a3b8" font-size="9" font-weight="600" text-anchor="end">0%</text>
 
         <!-- Bubbles -->
         ${bubblesHtml}
@@ -353,23 +360,23 @@ export function createScatterMatrixChart({
     const p = points.find((item) => item.menuId === id);
     if (!p) return;
 
-    g.addEventListener('mouseenter', (e) => {
+    g.addEventListener('mouseenter', () => {
       const circle = g.querySelector('.bubble-circle');
-      if (circle) circle.setAttribute('transform', `scale(1.2)`);
+      if (circle) circle.setAttribute('transform', `scale(1.25)`);
       circle.style.transformOrigin = `${getX(p.quantity)}px ${getY(p.marginRate)}px`;
 
       tooltip.innerHTML = `
         <div style="font-weight: 700; color: #93c5fd; margin-bottom: 2px;">${p.menuName} (${p.category})</div>
-        <div style="display: flex; gap: 8px;"><span>판매량:</span> <b>${p.quantity}잔</b></div>
+        <div style="display: flex; gap: 8px;"><span>판매량:</span> <b>${p.quantity.toLocaleString()}잔</b></div>
         <div style="display: flex; gap: 8px;"><span>실질 마진율:</span> <b>${p.marginRate.toFixed(1)}%</b></div>
         <div style="display: flex; gap: 8px;"><span>총 공헌이익:</span> <b style="color: #34d399;">${Math.round(p.contribution).toLocaleString()}원</b></div>
-        <div style="font-size: 10px; color: #cbd5e1; margin-top: 4px;">클릭하여 테이블에서 상세 확인 →</div>
+        <div style="font-size: 10px; color: #cbd5e1; margin-top: 3px;">클릭하여 테이블에서 상세 확인 →</div>
       `;
 
       const pctX = (getX(p.quantity) / width) * 100;
       tooltip.style.display = 'block';
       tooltip.style.left = `${pctX}%`;
-      tooltip.style.top = `${getY(p.marginRate) - 75}px`;
+      tooltip.style.top = `${Math.max(10, getY(p.marginRate) - 75)}px`;
       tooltip.style.transform = pctX > 70 ? 'translateX(-100%)' : 'translateX(10px)';
     });
 
