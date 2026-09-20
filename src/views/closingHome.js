@@ -226,7 +226,7 @@ export function renderClosingHomeView(container, { onNavigate }) {
         </div>
 
         <!-- NEW Visual Analytics Strip: 14-Day Dual Trend & Today Channel Donut -->
-        <div style="display: grid; grid-template-columns: 1.85fr 1.15fr; gap: 14px;">
+        <div class="split-2-col">
           <!-- Left: 14-Day Sales & Margin Trend -->
           <div class="chart-card">
             <div class="chart-header">
@@ -262,7 +262,7 @@ export function renderClosingHomeView(container, { onNavigate }) {
         </div>
 
         <!-- Bottom Section: Closing Checklist & Fast Navigation / Excel Backup -->
-        <div style="display: grid; grid-template-columns: 1.8fr 1.2fr; gap: 14px;">
+        <div class="split-2-col">
           <!-- Left: Closing Flow Checklist -->
           <div class="card">
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--outline-variant);">

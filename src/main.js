@@ -33,6 +33,19 @@ export function navigateTo(viewId) {
     }
   });
 
+  // Sync Mobile Bottom Navigation Active Class
+  document.querySelectorAll('.mobile-bottom-nav .bottom-nav-item').forEach((item) => {
+    const path = item.getAttribute('data-path');
+    if (path === viewId) {
+      item.classList.add('active');
+    } else {
+      item.classList.remove('active');
+    }
+  });
+
+  // Auto-close Mobile Sidebar Drawer if open
+  closeMobileSidebar();
+
   // Sync Top Header Title
   const titleEl = document.getElementById('current-header-title');
   if (titleEl && viewTitles[viewId]) {
@@ -57,7 +70,25 @@ export function navigateTo(viewId) {
   }
 }
 
+export function openMobileSidebar() {
+  const sidebar = document.getElementById('app-sidebar') || document.querySelector('.sidebar');
+  const backdrop = document.getElementById('sidebar-backdrop');
+  if (sidebar) sidebar.classList.add('mobile-open');
+  if (backdrop) backdrop.classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+export function closeMobileSidebar() {
+  const sidebar = document.getElementById('app-sidebar') || document.querySelector('.sidebar');
+  const backdrop = document.getElementById('sidebar-backdrop');
+  if (sidebar) sidebar.classList.remove('mobile-open');
+  if (backdrop) backdrop.classList.remove('active');
+  document.body.style.overflow = '';
+}
+
 window.appNavigate = navigateTo;
+window.openMobileSidebar = openMobileSidebar;
+window.closeMobileSidebar = closeMobileSidebar;
 
 // Global App Initialization
 document.addEventListener('DOMContentLoaded', async () => {
@@ -71,6 +102,42 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     });
   });
+
+  // Bind mobile bottom nav items
+  document.querySelectorAll('.mobile-bottom-nav .bottom-nav-item').forEach((item) => {
+    item.addEventListener('click', (e) => {
+      e.preventDefault();
+      const path = item.getAttribute('data-path');
+      if (path) {
+        navigateTo(path);
+      }
+    });
+  });
+
+  // Mobile Drawer Toggle Button
+  const mobileMenuBtn = document.getElementById('btn-mobile-menu');
+  if (mobileMenuBtn) {
+    mobileMenuBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openMobileSidebar();
+    });
+  }
+
+  // Mobile Drawer Close Button
+  const sidebarCloseBtn = document.getElementById('btn-sidebar-close');
+  if (sidebarCloseBtn) {
+    sidebarCloseBtn.addEventListener('click', () => {
+      closeMobileSidebar();
+    });
+  }
+
+  // Backdrop click to close drawer
+  const backdrop = document.getElementById('sidebar-backdrop');
+  if (backdrop) {
+    backdrop.addEventListener('click', () => {
+      closeMobileSidebar();
+    });
+  }
 
   // Init Data Store
   const loadingIndicator = document.getElementById('global-loading');

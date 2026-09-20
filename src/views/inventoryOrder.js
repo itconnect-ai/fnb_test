@@ -102,7 +102,7 @@ export function renderInventoryOrderView(container) {
 
         ${activeTab === 'orders' ? `
           <!-- TAB 1: Order Recommendations & Clipboard Text Copy (FEAT-15, FEAT-16, Case 3.2) -->
-          <div style="display: grid; grid-template-columns: 1.3fr 0.7fr; gap: 14px; align-items: start;">
+          <div class="split-2-col-inv">
             
             <!-- Left: Recommendations Table -->
             <div class="card" style="padding: 16px;">
@@ -127,7 +127,7 @@ export function renderInventoryOrderView(container) {
                 <table class="data-table" style="font-size: 12px;">
                   <thead>
                     <tr style="background-color: #f8fafc;">
-                      <th>품목명</th>
+                      <th class="col-sticky">품목명</th>
                       <th>거래처</th>
                       <th class="text-right">구매 규격</th>
                       <th class="text-right">현재고</th>
@@ -147,9 +147,9 @@ export function renderInventoryOrderView(container) {
                       </tr>
                     ` : displayItems.map((item) => `
                       <tr style="${item.isUrgent ? 'background-color: #fffdf5;' : ''}">
-                        <td style="font-weight: 600;">
+                        <td class="col-sticky" style="font-weight: 600;">
                           ${item.name}
-                          ${item.isUrgent ? '<span class="badge badge-danger" style="font-size: 10px; margin-left: 4px;">발주점 도달</span>' : ''}
+                          ${item.isUrgent ? '<span class="badge badge-danger" style="margin-left: 4px;">긴급</span>' : ''}
                         </td>
                         <td style="color: var(--on-surface-variant);">${item.supplierName}</td>
                         <td class="text-right tabular-nums" style="color: var(--outline);">
@@ -237,7 +237,7 @@ export function renderInventoryOrderView(container) {
                 <thead>
                   <tr style="background-color: #f8fafc;">
                     <th style="width: 60px;">코드</th>
-                    <th>품목명</th>
+                    <th class="col-sticky">품목명</th>
                     <th style="width: 50px;">단위</th>
                     <th class="text-right" style="width: 90px;">전일 마감</th>
                     <th class="text-right" style="width: 80px; color: #166534;">오늘 입고(+)</th>
@@ -252,7 +252,7 @@ export function renderInventoryOrderView(container) {
                   ${ledger.items.map((it) => `
                     <tr data-mat-id="${it.materialId}">
                       <td class="tabular-nums" style="color: var(--outline);">${it.materialId}</td>
-                      <td style="font-weight: 600;">${it.name}</td>
+                      <td class="col-sticky" style="font-weight: 600;">${it.name}</td>
                       <td style="color: var(--outline);">${it.unit}</td>
                       <td class="text-right tabular-nums">${Math.round(it.yesterdayStock).toLocaleString()}</td>
                       <td class="text-right tabular-nums" style="color: #166534; font-weight: 600;">

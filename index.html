@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>프렙 카페 운영 관리 시스템</title>
   
   <!-- Google Fonts: Plus Jakarta Sans (Numbers/English) & Noto Sans KR (Korean) & Material Symbols -->
@@ -12,14 +12,18 @@
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
 </head>
 <body>
+  <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
   <div class="app-container">
-    <!-- Fixed Sidebar -->
-    <aside class="sidebar">
+    <!-- Fixed Sidebar / Mobile Off-Canvas Drawer -->
+    <aside class="sidebar" id="app-sidebar">
       <div>
         <div class="sidebar-header">
           <span class="material-symbols-outlined" style="color: var(--primary); font-size: 20px;">local_cafe</span>
           <span class="brand-title">프렙 매니저</span>
           <span class="brand-badge">매장용</span>
+          <button class="sidebar-close-btn" id="btn-sidebar-close" aria-label="메뉴 닫기">
+            <span class="material-symbols-outlined">close</span>
+          </button>
         </div>
 
         <div class="nav-section-title">스토어 운영</div>
@@ -66,34 +70,37 @@
       <!-- Top Sticky Header -->
       <header class="top-header">
         <div class="header-left">
+          <button class="mobile-menu-btn" id="btn-mobile-menu" aria-label="메뉴 열기">
+            <span class="material-symbols-outlined">menu</span>
+          </button>
           <span class="header-title" id="current-header-title">마감 홈</span>
           <div class="divider-v"></div>
-          <div style="display: flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: var(--radius-md); background-color: var(--surface-container-low); font-size: 12px; color: var(--on-surface);">
+          <div class="header-date-box" style="display: flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: var(--radius-md); background-color: var(--surface-container-low); font-size: 12px; color: var(--on-surface);">
             <span class="material-symbols-outlined" style="font-size: 16px; color: var(--on-surface-variant);">calendar_month</span>
             <span id="header-date-badge">2026년 9월 18일 (마감 실적 기준)</span>
           </div>
         </div>
 
         <div class="header-right">
-          <div style="display: flex; align-items: center; gap: 6px; padding: 2px 8px; border-radius: var(--radius-md); background-color: var(--surface-container); font-size: 11px; font-weight: 600; color: var(--primary);">
+          <div class="header-status-badge" style="display: flex; align-items: center; gap: 6px; padding: 2px 8px; border-radius: var(--radius-md); background-color: var(--surface-container); font-size: 11px; font-weight: 600; color: var(--primary);">
             <span class="material-symbols-outlined" style="font-size: 14px; color: var(--primary);">check_circle</span>
-            <span>데이터 로컬 안전 저장됨</span>
+            <span class="header-status-text">데이터 로컬 안전 저장됨</span>
           </div>
         </div>
       </header>
 
       <!-- Operational Sticky Banner -->
       <div class="op-banner">
-        <div style="display: flex; align-items: center; gap: 10px;">
+        <div class="op-banner-left" style="display: flex; align-items: center; gap: 10px;">
           <div style="display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; color: var(--primary);">
             <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--primary);"></span>
             <span>프렙 카페 운영 데이터 (445일 실적 로드 완료)</span>
           </div>
-          <span style="color: var(--outline-variant);">|</span>
-          <span style="font-size: 11px; color: var(--outline);">IndexedDB 영구 보존 모드</span>
+          <span class="op-banner-sep" style="color: var(--outline-variant);">|</span>
+          <span class="op-banner-sub" style="font-size: 11px; color: var(--outline);">IndexedDB 영구 보존 모드</span>
         </div>
 
-        <div style="display: flex; align-items: center; gap: 6px;">
+        <div class="op-banner-right" style="display: flex; align-items: center; gap: 6px;">
           <button class="btn btn-secondary btn-sm" onclick="window.appNavigate('closing-input')">
             <span class="material-symbols-outlined" style="font-size: 13px;">edit_note</span>
             <span>+ 마감 판매 입력</span>
@@ -110,6 +117,30 @@
       </main>
     </div>
   </div>
+
+  <!-- Mobile Fixed Bottom Navigation Bar -->
+  <nav class="mobile-bottom-nav" id="mobile-bottom-nav">
+    <button class="bottom-nav-item active" data-path="closing-home" aria-label="마감 홈">
+      <span class="material-symbols-outlined">task_alt</span>
+      <span class="bottom-nav-label">마감 홈</span>
+    </button>
+    <button class="bottom-nav-item" data-path="closing-input" aria-label="마감 입력">
+      <span class="material-symbols-outlined">edit_note</span>
+      <span class="bottom-nav-label">마감 입력</span>
+    </button>
+    <button class="bottom-nav-item" data-path="menu-profitability" aria-label="메뉴 수익">
+      <span class="material-symbols-outlined">trending_up</span>
+      <span class="bottom-nav-label">메뉴 수익</span>
+    </button>
+    <button class="bottom-nav-item" data-path="expected-pl" aria-label="예상 손익">
+      <span class="material-symbols-outlined">finance</span>
+      <span class="bottom-nav-label">예상 손익</span>
+    </button>
+    <button class="bottom-nav-item" data-path="inventory-order" aria-label="재고/발주">
+      <span class="material-symbols-outlined">inventory_2</span>
+      <span class="bottom-nav-label">재고/발주</span>
+    </button>
+  </nav>
 
   <script type="module" src="/src/main.js"></script>
 </body>

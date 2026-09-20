@@ -50,8 +50,8 @@ export function renderClosingInputView(container) {
     container.innerHTML = `
       <div class="view-panel">
         <!-- Header Strip -->
-        <div class="card" style="padding: 12px 16px; display: flex; align-items: center; justify-content: space-between;">
-          <div style="display: flex; align-items: center; gap: 14px;">
+        <div class="card" style="padding: 12px 16px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px;">
+          <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px;">
             <span style="font-weight: 700; font-size: 16px; color: var(--on-surface);">일일 마감 판매·지출·입출고 입력</span>
             <div class="divider-v"></div>
             <div style="display: flex; align-items: center; gap: 6px;">
@@ -60,7 +60,7 @@ export function renderClosingInputView(container) {
             </div>
           </div>
 
-          <div style="display: flex; align-items: center; gap: 8px;">
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
             <button class="btn btn-secondary btn-sm" id="btn-reset-inputs">
               <span class="material-symbols-outlined" style="font-size: 14px;">refresh</span>
               판매 입력 초기화
@@ -73,15 +73,15 @@ export function renderClosingInputView(container) {
         </div>
 
         <!-- Alert Notification Box -->
-        <div id="input-alert-box" class="alert-box alert-info hidden"></div>
+        <div id="alert-container"></div>
 
-        <!-- SECTION 1: Sales Input Table -->
+        <!-- SECTION 1: Daily Menu Sales Input Table (FEAT-04 & FEAT-05) -->
         <div class="table-container">
           <table class="data-table">
             <thead>
               <tr>
                 <th style="width: 70px;">코드</th>
-                <th>메뉴명</th>
+                <th class="col-sticky">메뉴명</th>
                 <th style="width: 80px;" class="text-right">기준단가</th>
                 <th style="width: 70px;" class="text-right">식재료비</th>
                 <th style="width: 60px;" class="text-right">포장비</th>
@@ -104,7 +104,7 @@ export function renderClosingInputView(container) {
               ${rowsData.map((row) => `
                 <tr data-menu-id="${row.menuId}">
                   <td class="tabular-nums" style="color: var(--outline);">${row.menuId}</td>
-                  <td style="font-weight: 600;">
+                  <td class="col-sticky" style="font-weight: 600;">
                     ${row.menuName}
                     <div class="row-warning-text hidden" style="font-size: 11px; color: var(--error); font-weight: 700;"></div>
                   </td>
@@ -180,7 +180,7 @@ export function renderClosingInputView(container) {
           </div>
 
           <!-- Expense Input Form Row -->
-          <div style="display: grid; grid-template-columns: 180px 180px 1fr auto; gap: 10px; align-items: flex-end; background-color: #f8fafc; padding: 12px; border-radius: var(--radius-md); border: 1px solid #e2e8f0; margin-bottom: 12px;">
+          <div class="form-row-grid-4" style="background-color: #f8fafc; padding: 12px; border-radius: var(--radius-md); border: 1px solid #e2e8f0; margin-bottom: 12px;">
             <div>
               <label for="expense-category-select" style="font-size: 11px; font-weight: 600; color: var(--on-surface-variant); display: block; margin-bottom: 4px;">
                 비용 항목
@@ -273,7 +273,7 @@ export function renderClosingInputView(container) {
           </div>
 
           <!-- Event Input Form Row -->
-          <div style="display: grid; grid-template-columns: 140px 200px 140px 1fr auto; gap: 10px; align-items: flex-end; background-color: #f8fafc; padding: 12px; border-radius: var(--radius-md); border: 1px solid #e2e8f0; margin-bottom: 12px;">
+          <div class="form-row-grid-5" style="background-color: #f8fafc; padding: 12px; border-radius: var(--radius-md); border: 1px solid #e2e8f0; margin-bottom: 12px;">
             <div>
               <label for="inv-type-select" style="font-size: 11px; font-weight: 600; color: var(--on-surface-variant); display: block; margin-bottom: 4px;">
                 구분

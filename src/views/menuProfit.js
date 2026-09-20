@@ -204,7 +204,7 @@ export function renderMenuProfitView(container) {
             <thead>
               <tr>
                 <th style="width: 80px;">코드</th>
-                <th>메뉴명</th>
+                <th class="col-sticky">메뉴명</th>
                 <th style="width: 70px;">분류</th>
                 <th class="text-right" style="width: 90px;">기준판매가</th>
                 <th class="text-right" style="width: 80px;">식재료비</th>
@@ -228,7 +228,7 @@ export function renderMenuProfitView(container) {
                 return `
                   <tr id="menu-row-${m.menuId}" class="${m.isNegativeMargin ? 'warning-row' : ''}" style="transition: background-color 0.4s;">
                     <td class="tabular-nums" style="color: var(--outline);">${m.menuId}</td>
-                    <td style="font-weight: 600; color: var(--on-surface);">
+                    <td class="col-sticky" style="font-weight: 600; color: var(--on-surface);">
                       ${m.menuName}
                       ${m.isNegativeMargin ? '<span class="badge badge-danger" style="margin-left: 4px;">⚠️ 역마진 경고</span>' : ''}
                     </td>
@@ -258,7 +258,7 @@ export function renderMenuProfitView(container) {
         </div>
 
         <!-- 2. Secondary Insight: Compact BCG 4-Quadrant Scatter & Top 5 Margin Contribution Bars -->
-        <div style="display: grid; grid-template-columns: 1.6fr 1.1fr; gap: 14px;">
+        <div class="split-2-col-menu">
           <!-- Left: 4-Quadrant BCG Matrix Scatter -->
           <div class="chart-card">
             <div class="chart-header">

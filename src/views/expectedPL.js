@@ -147,7 +147,7 @@ export function renderExpectedPLView(container) {
         </div>
 
         <!-- Main Layout: 2 Columns (P&L Left, Projection & BEP Right) -->
-        <div style="display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 14px; align-items: start;">
+        <div class="split-2-col-pl">
           
           <!-- LEFT COLUMN: Structured P&L Statement -->
           <div class="card" style="padding: 16px;">
@@ -287,7 +287,7 @@ export function renderExpectedPLView(container) {
               </div>
 
               <!-- Main KPI Big Boxes -->
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px;">
+              <div class="split-2-col-even" style="gap: 10px; margin-bottom: 14px;">
                 <div style="background-color: #eff6ff; padding: 12px; border-radius: var(--radius-md); border: 1px solid #dbeafe;">
                   <div style="font-size: 11px; font-weight: 600; color: #1d4ed8; margin-bottom: 4px;">당월 최종 예상 매출</div>
                   <div style="font-size: 18px; font-weight: 800; color: #1e40af; line-height: 1.2;">
